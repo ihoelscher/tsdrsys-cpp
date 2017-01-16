@@ -1,4 +1,5 @@
 #include "lookup.h"
+#include "stdio.h"
 
 double zmf(double x, double a, double b){
     double y, m, bb;
@@ -71,32 +72,39 @@ double pimf(double x, double a, double b, double c, double d){
 }
 
 
-void put_table(bool ctype, double hlim[4], double slim[2], uchar table[NS][NH]){
+void put_table(bool ctype, double hlim[4], double slim[2], double vlim[2], uchar (*table)[NH][NV]){
     if(ctype == OUTER){
         for(int s = 0; s < NS; s++){
             for(int h = 0; h < NH; h++){
-                /*if(h <= hlim[0] || h >= hlim[3]){
-                    table[s][h] = (uchar)(smf(s, slim[0], slim[1])*255);
-                }else if(s >= slim[1]){
-                    table[s][h] = (uchar)((zmf(h, hlim[0], hlim[1]) + smf(h, hlim[2], hlim[3])) * zmf(s, slim[1], slim[1] * 4.) * 0.75 * 255);//
-                }else{
-                    table[s][h] = (uchar)((zmf(h, hlim[0], hlim[1]) + smf(h, hlim[2], hlim[3])) * smf(s, slim[0], slim[1]) * 0.35 * 255);
-                }*/
-                table[s][h] = (uchar)((zmf(h, hlim[0], hlim[1]) + smf(h, hlim[2], hlim[3])) * smf(s, slim[0], slim[1]) * 255);
+                for(int v = 0; v < NV; v++) {
+                    /*if(h <= hlim[0] || h >= hlim[3]){
+                        table[s][h] = (uchar)(smf(s, slim[0], slim[1])*255);
+                    }else if(s >= slim[1]){
+                        table[s][h] = (uchar)((zmf(h, hlim[0], hlim[1]) + smf(h, hlim[2], hlim[3])) * zmf(s, slim[1], slim[1] * 4.) * 0.75 * 255);//
+                    }else{
+                        table[s][h] = (uchar)((zmf(h, hlim[0], hlim[1]) + smf(h, hlim[2], hlim[3])) * smf(s, slim[0], slim[1]) * 0.35 * 255);
+                    }*/
+                    printf("%d, %d, %d", s, h, v);
+                    table[s][h][v] = 0;//(uchar) ((zmf(h, hlim[0], hlim[1]) + smf(h, hlim[2], hlim[3])) *
+                            //smf(s, slim[0], slim[1]) * smf(v, vlim[0], vlim[1]) * 255);
+                }
             }
         }
     }else {
         for (int s = 0; s < NS; s++) {
             for (int h = 0; h < NH; h++) {
-                /*if (h >= hlim[1] && h <= hlim[2]) {
-                    table[s][h] = (uchar)(smf(s, slim[0], slim[1]) * 255);
-                } else if (s >= slim[1]) {
-                    table[s][h] = (uchar)(pimf(h, hlim[0], hlim[1], hlim[2], hlim[3]) * zmf(s, slim[1], slim[1] * 4.) * 0.75 * 255);//
-                } else {
-                    table[s][h] = (uchar)(
-                            pimf(h, hlim[0], hlim[1], hlim[2], hlim[3]) * smf(s, slim[0], slim[1]) * 0.35 * 255);
-                }*/
-                table[s][h] = (uchar)(pimf(h, hlim[0], hlim[1], hlim[2], hlim[3]) * smf(s, slim[0], slim[1]) * 255);
+                for(int v = 0; v < NV; v++) {
+                    /*if (h >= hlim[1] && h <= hlim[2]) {
+                        table[s][h] = (uchar)(smf(s, slim[0], slim[1]) * 255);
+                    } else if (s >= slim[1]) {
+                        table[s][h] = (uchar)(pimf(h, hlim[0], hlim[1], hlim[2], hlim[3]) * zmf(s, slim[1], slim[1] * 4.) * 0.75 * 255);//
+                    } else {
+                        table[s][h] = (uchar)(
+                                pimf(h, hlim[0], hlim[1], hlim[2], hlim[3]) * smf(s, slim[0], slim[1]) * 0.35 * 255);
+                    }*/
+                    table[s][h][v] = (uchar) (pimf(h, hlim[0], hlim[1], hlim[2], hlim[3]) *
+                            smf(s, slim[0], slim[1]) * smf(v, vlim[0], vlim[1]) * 255);
+                }
             }
         }
     }

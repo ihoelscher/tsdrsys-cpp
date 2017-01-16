@@ -30,7 +30,7 @@ double zmf(double x, double a, double b);
 double smf(double x, double a, double b);
 double pimf(double x, double a, double b, double c, double d);
 
-void put_table(bool ctype, double hlim[4], double slim[2], uchar table[NS][NH]);
+void put_table(bool ctype, double hlim[4], double slim[2], double vlim[2], uchar table[NS][NH][NV]);
 
 
 
