@@ -1,5 +1,4 @@
 #include "lookup.h"
-#include "stdio.h"
 
 double zmf(double x, double a, double b){
     double y, m, bb;
@@ -72,7 +71,7 @@ double pimf(double x, double a, double b, double c, double d){
 }
 
 
-void put_table(bool ctype, double hlim[4], double slim[2], double vlim[2], uchar (*table)[NH][NV]){
+void put_table(bool ctype, double hlim[4], double slim[2], double vlim[2], uchar *table){
     if(ctype == OUTER){
         for(int s = 0; s < NS; s++){
             for(int h = 0; h < NH; h++){
@@ -84,16 +83,16 @@ void put_table(bool ctype, double hlim[4], double slim[2], double vlim[2], uchar
                     }else{
                         table[s][h] = (uchar)((zmf(h, hlim[0], hlim[1]) + smf(h, hlim[2], hlim[3])) * smf(s, slim[0], slim[1]) * 0.35 * 255);
                     }*/
-                    printf("%d, %d, %d", s, h, v);
-                    table[s][h][v] = 0;//(uchar) ((zmf(h, hlim[0], hlim[1]) + smf(h, hlim[2], hlim[3])) *
-                            //smf(s, slim[0], slim[1]) * smf(v, vlim[0], vlim[1]) * 255);
+                    table[s*NH*NV+h*NV+v] = (uchar) ((zmf(h, hlim[0], hlim[1]) + smf(h, hlim[2], hlim[3])) *
+                                                     (0.9*smf(s, slim[0], slim[1]) + 0.1*smf(v, vlim[0], vlim[1])) * 255);
                 }
             }
         }
+        table[0] = 1;
     }else {
         for (int s = 0; s < NS; s++) {
             for (int h = 0; h < NH; h++) {
-                for(int v = 0; v < NV; v++) {
+                for (int v = 0; v < NV; v++) {
                     /*if (h >= hlim[1] && h <= hlim[2]) {
                         table[s][h] = (uchar)(smf(s, slim[0], slim[1]) * 255);
                     } else if (s >= slim[1]) {
@@ -102,8 +101,8 @@ void put_table(bool ctype, double hlim[4], double slim[2], double vlim[2], uchar
                         table[s][h] = (uchar)(
                                 pimf(h, hlim[0], hlim[1], hlim[2], hlim[3]) * smf(s, slim[0], slim[1]) * 0.35 * 255);
                     }*/
-                    table[s][h][v] = (uchar) (pimf(h, hlim[0], hlim[1], hlim[2], hlim[3]) *
-                            smf(s, slim[0], slim[1]) * smf(v, vlim[0], vlim[1]) * 255);
+                    table[s*NH*NV+h*NV+v] = (uchar) (pimf(h, hlim[0], hlim[1], hlim[2], hlim[3]) *
+                                                     (0.9*smf(s, slim[0], slim[1]) + 0.1*smf(v, vlim[0], vlim[1])) * 255);
                 }
             }
         }

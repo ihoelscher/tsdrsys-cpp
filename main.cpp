@@ -30,187 +30,178 @@ int main( int argc, char** argv )
 {
 
     clock_t segtime=0, msertime=0, total = clock();
-    double slim[2] = {255*0.12, 255*0.5}; //12
-    double vlim[2] = {255*0.08, 255*0.2}; //12
+    double slim[2] = {255*0.10, 255*0.5}; //12
+    double vlim[2] = {255*0, 255*0.15}; //12
     double rlim[4] = {4., 14., 160., 176.}; //CHINA 10, 16
     double ylim[4] = {10., 18., 24., 34.};
-    double blim[4] = {106., 114., 124., 130.};
+    double blim[4] = {102., 116., 124., 138.};
 
-    uchar redlt[NS][NH][NV];
-    uchar yellt[NS][NH][NV];
-    uchar blult[NS][NH][NV];
+    uchar *redlt = new uchar[NS*NH*NV];
+    uchar *yellt = new uchar[NS*NH*NV];
+    uchar *blult = new uchar[NS*NH*NV];
 
-////    string imagesfolder(argv[1]);
-//
+    cout << smf(38, vlim[0], vlim[1]) << endl;
 
     put_table(OUTER, rlim, slim, vlim, redlt);
-//    put_table(INNER, ylim, slim, vlim, yellt);
-//    put_table(INNER, blim, slim, vlim, blult);
+    put_table(OUTER, ylim, slim, vlim, yellt);
+    put_table(INNER, blim, slim, vlim, blult);
+
+    string imagesfolder("/home/ihoelscher/Databases/FullIJCNN2013/");
+    cout << imagesfolder << endl;
+
+    total = clock() - total;
+    int numreg = 0;
+
+    int a = atoi(argv[1]), b = atoi(argv[2]);
+
+    for(int nimages = a; nimages < b; nimages++){
+
+
+        string imageName(to_string(nimages, 5) + ".ppm");
+
+        cout << imageName << endl;
+
+        Mat img;
+        img = imread(imagesfolder+imageName.c_str(), IMREAD_COLOR); // Read the file
+        if( img.empty() )                      // Check for invalid input
+        {
+            cout <<  "Could not open or find the image" << std::endl ;
+            return -1;
+        }
+
+        Mat img2; img.copyTo(img2);
+
+        bilateralFilter(img2, img, 2, 50, 50);
+
+        clock_t begin = clock();
+        Mat hsv;
+        cvtColor(img, hsv, COLOR_BGR2HSV);
+
+        Mat rmask(hsv.rows, hsv.cols, CV_8UC1);
+        Mat ymask(hsv.rows, hsv.cols, CV_8UC1);
+        Mat bmask(hsv.rows, hsv.cols, CV_8UC1);
+
+        int channels = hsv.channels();
+        int nRows = hsv.rows;
+        int nCols = hsv.cols * channels;
+        if (hsv.isContinuous()) {
+            nCols *= nRows;
+            nRows = 1;
+        }
+
+        uchar *p;
+        uchar *rm, *ym, *bm;
+        for (int x = 0; x < nRows; x++) {
+            p = hsv.ptr<uchar>(x);
+            rm = rmask.ptr<uchar>(x);
+            ym = ymask.ptr<uchar>(x);
+            bm = bmask.ptr<uchar>(x);
+            for (int y = 0; y < nCols; y += 3) {
+//                if (*(p + y + 2) > minV) {
+//                    rm[y / 3] = (uchar) redlt[*(p +y + 1)][*(p + y)];
+//                    ym[y / 3] = (uchar) yellt[*(p +y + 1)][*(p + y)];
+//                    bm[y / 3] = (uchar) blult[*(p +y + 1)][*(p + y)];
+//                }
+//                else {
+//                    rm[y / 3] = (uchar) 0;
+//                    ym[y / 3] = (uchar) 0;
+//                    bm[y / 3] = (uchar) 0;
+//                }
+                uchar s = *(p +y + 1), h = *(p + y), v = *(p + y+2);
+                rm[y / 3] = (uchar) redlt[s*NH*NV+h*NV+v];
+                ym[y / 3] = (uchar) yellt[s*NH*NV+h*NV+v];
+                bm[y / 3] = (uchar) blult[s*NH*NV+h*NV+v];
+            }
+        }
+        segtime += clock() - begin;
+
+        string redfolder(imagesfolder+"red/");
+//        string yellowfolder("/home/ihoelscher/ClionProjects/TSDRS/images/CTSD/yel/");
+        string bluefolder(imagesfolder+"blu/");
+
+        Mat g, finalr, finaly;
+        vector<Mat> channelsv(3);
+
+        g = Mat::zeros(Size(rmask.cols, rmask.rows), CV_8UC1);
+
+        g.copyTo(channelsv[0]);
+        g.copyTo(channelsv[1]);
+        rmask.copyTo(channelsv[2]);
+        cv::merge(channelsv, finalr);
+        imwrite(redfolder+imageName, finalr);
+
+//        g.copyTo(channelsv[0]);
+//        ymask.copyTo(channelsv[1]);
+//        ymask.copyTo(channelsv[2]);
+//        cv::merge(channelsv, finaly);
+//        imwrite(yellowfolder+imageName, finaly);
+
+        bmask.copyTo(channelsv[0]);
+        g.copyTo(channelsv[1]);
+        g.copyTo(channelsv[2]);
+        cv::merge(channelsv, finaly);
+        imwrite(bluefolder+imageName, finaly);
+
+
+//        begin = clock();
+//        MSER_param yparams = {.delta=1, .min_area=120, .max_area=180000, .max_variation=0.35, .min_diversity=0.9};
+//        MSER_param rparams = {.delta=1, .min_area=40, .max_area=50000, .max_variation=0.35, .min_diversity=0.9};
+//        MSER_param bparams = {.delta=1, .min_area=120, .max_area=180000, .max_variation=0.35, .min_diversity=0.9};
+//        uchar yfilter = ERODE; //GAUSS;// + THRESH;
+//        uchar rfilter = MEDIAN;//OPENING; // + THRESH;
+//        uchar bfilter = MEDIAN + OPENING;
 //
-//    total = clock() - total;
-//    int numreg = 0;
+//        vector<Rect> rois;
+//        //cout << mask. << endl;
+//        //uchar err = getRegions(rparams, rfilter, mask, rois);
+//        uchar rerr = getRegions(rparams, rfilter, rmask, rois);
+//        uchar yerr = getRegions(yparams, yfilter, ymask, rois);
+//        //uchar berr = getRegions(bparams, bfilter, bmask, rois);
+//        msertime += clock() - begin;
+//        //clock_t end = clock();
+//        if (!yerr and !rerr) {
+//            int j = 0;
+//            //numreg += rois.size();
+//            //cout << rois.size() << endl;
+//            for (vector<Rect>::iterator it = rois.begin(); it != rois.end(); ++it) {
+//                //cout << (*it).x << ' ' << (*it).y << ' ' << (*it).width << ' ' << (*it).height << endl;
+//                /*int w, h, wh;
+//                w = (*it).width;
+//                h = (*it).height;
 //
-//    int nimages;
+//                if (w > h) {
+//                    wh = w - h;
+//                    (*it).y = fmax((*it).y - wh/2, 0);
+//                    (*it).y + w >= mask.rows ? (*it).height = mask.rows - (*it).y - 1 : (*it).height = w;
+//                } else {
+//                    wh = h - w;
+//                    (*it).x = fmax((*it).x - wh/2, 0);
+//                    (*it).x + h >= mask.cols ? (*it).width = mask.cols - (*it).x - 1 : (*it).width = h;
+//                }//*/
 //
-//    string imagesfolder("/home/ihoelscher/Databases/FullIJCNN2013/");
-//    //string redfolder("/home/ihoelscher/Databases/TSrecog/ALLIMAGES/rois/");
-//    //string yelfolder("/home/ihoelscher/Databases/CTSD/train/yel/fuzz2/");
+//                //string roisfolder(redfolder+"rois/");
+//                string roisfolder(imagesfolder + "rois2/");
 //
-////    cout << argv[1] << endl;
-//    cout << imagesfolder << endl;
-//
-//    string imageName; // by default
-//
-////    int a = atoi(argv[2]), b = atoi(argv[3]);
-//    int a = 0, b = 0;
-//
-//    for(nimages = a; nimages < b; nimages++){
-//
-//        imageName = to_string(nimages, 5) + ".ppm";
-//
-//        cout << imageName << endl;
-//
-//        Mat img;
-//        img = imread(imagesfolder+imageName.c_str(), IMREAD_COLOR); // Read the file
-//        if( img.empty() )                      // Check for invalid input
-//        {
-//            cout <<  "Could not open or find the image" << std::endl ;
-//            return -1;
-//        }
-//
-//
-//        clock_t begin = clock();
-//        Mat hsv;
-//        cvtColor(img, hsv, COLOR_BGR2HSV);
-//
-//        Mat rmask(hsv.rows, hsv.cols, CV_8UC1);
-//        Mat ymask(hsv.rows, hsv.cols, CV_8UC1);
-//        Mat bmask(hsv.rows, hsv.cols, CV_8UC1);
-//
-//        int channels = hsv.channels();
-//        int nRows = hsv.rows;
-//        int nCols = hsv.cols * channels;
-//        if (hsv.isContinuous()) {
-//            nCols *= nRows;
-//            nRows = 1;
-//        }
-//
-//        uchar *p;
-//        uchar *rm, *ym, *bm;
-//        cout << "oi" << endl;
-//        for (int x = 0; x < nRows; x++) {
-//            p = hsv.ptr<uchar>(x);
-//            rm = rmask.ptr<uchar>(x);
-//            ym = ymask.ptr<uchar>(x);
-//            bm = bmask.ptr<uchar>(x);
-//            for (int y = 0; y < nCols; y += 3) {
-////                if (*(p + y + 2) > minV) {
-////                    rm[y / 3] = (uchar) redlt[*(p +y + 1)][*(p + y)];
-////                    ym[y / 3] = (uchar) yellt[*(p +y + 1)][*(p + y)];
-////                    bm[y / 3] = (uchar) blult[*(p +y + 1)][*(p + y)];
-////                }
-////                else {
-////                    rm[y / 3] = (uchar) 0;
-////                    ym[y / 3] = (uchar) 0;
-////                    bm[y / 3] = (uchar) 0;
-////                }
-//                rm[y / 3] = (uchar) redlt[*(p +y + 1)][*(p + y)][*(p +y + 2)];
-////                ym[y / 3] = (uchar) yellt[*(p +y + 1)][*(p + y)][*(p +y + 2)];
-////                bm[y / 3] = (uchar) blult[*(p +y + 1)][*(p + y)][*(p +y + 2)];
+//                imwrite(roisfolder + to_string(nimages, 0) + "-" + to_string(j, 6) + ".png", img(*it));
+//                j++;
 //            }
 //        }
-//        segtime += clock() - begin;
-//
-//        cout << "oi" << endl;
-//
-//        string redfolder(imagesfolder+"red/");
-////        string yellowfolder("/home/ihoelscher/ClionProjects/TSDRS/images/CTSD/yel/");
-//        string bluefolder(imagesfolder+"blu/");
-//
-//        Mat g, finalr, finaly;
-//        vector<Mat> channelsv(3);
-//
-//        g = Mat::zeros(Size(rmask.cols, rmask.rows), CV_8UC1);
-//
-//        g.copyTo(channelsv[0]);
-//        g.copyTo(channelsv[1]);
-//        rmask.copyTo(channelsv[2]);
-//
-//        cv::merge(channelsv, finalr);
-//        imwrite(redfolder+imageName, finalr);
-//
-////        g.copyTo(channelsv[0]);
-////        ymask.copyTo(channelsv[1]);
-////        ymask.copyTo(channelsv[2]);
-////        cv::merge(channelsv, finaly);
-////        imwrite(yellowfolder+imageName, finaly);
-//
-//        bmask.copyTo(channelsv[0]);
-//        g.copyTo(channelsv[1]);
-//        g.copyTo(channelsv[2]);
-//        cv::merge(channelsv, finaly);
-//        imwrite(bluefolder+imageName, finaly);
-//
-//
-////        begin = clock();
-////        MSER_param yparams = {.delta=1, .min_area=120, .max_area=180000, .max_variation=0.35, .min_diversity=0.9};
-////        MSER_param rparams = {.delta=1, .min_area=40, .max_area=50000, .max_variation=0.35, .min_diversity=0.9};
-////        MSER_param bparams = {.delta=1, .min_area=120, .max_area=180000, .max_variation=0.35, .min_diversity=0.9};
-////        uchar yfilter = ERODE; //GAUSS;// + THRESH;
-////        uchar rfilter = MEDIAN;//OPENING; // + THRESH;
-////        uchar bfilter = MEDIAN + OPENING;
-////
-////        vector<Rect> rois;
-////        //cout << mask. << endl;
-////        //uchar err = getRegions(rparams, rfilter, mask, rois);
-////        uchar rerr = getRegions(rparams, rfilter, rmask, rois);
-////        uchar yerr = getRegions(yparams, yfilter, ymask, rois);
-////        //uchar berr = getRegions(bparams, bfilter, bmask, rois);
-////        msertime += clock() - begin;
-////        //clock_t end = clock();
-////        if (!yerr and !rerr) {
-////            int j = 0;
-////            //numreg += rois.size();
-////            //cout << rois.size() << endl;
-////            for (vector<Rect>::iterator it = rois.begin(); it != rois.end(); ++it) {
-////                //cout << (*it).x << ' ' << (*it).y << ' ' << (*it).width << ' ' << (*it).height << endl;
-////                /*int w, h, wh;
-////                w = (*it).width;
-////                h = (*it).height;
-////
-////                if (w > h) {
-////                    wh = w - h;
-////                    (*it).y = fmax((*it).y - wh/2, 0);
-////                    (*it).y + w >= mask.rows ? (*it).height = mask.rows - (*it).y - 1 : (*it).height = w;
-////                } else {
-////                    wh = h - w;
-////                    (*it).x = fmax((*it).x - wh/2, 0);
-////                    (*it).x + h >= mask.cols ? (*it).width = mask.cols - (*it).x - 1 : (*it).width = h;
-////                }//*/
-////
-////                //string roisfolder(redfolder+"rois/");
-////                string roisfolder(imagesfolder + "rois2/");
-////
-////                imwrite(roisfolder + to_string(nimages, 0) + "-" + to_string(j, 6) + ".png", img(*it));
-////                j++;
-////            }
-////        }
-//    }
-//    total += segtime + msertime;
-//
-//    double elapsed_secs = (double(total) / CLOCKS_PER_SEC)/(b-a);
-//    double segsecs = (double(segtime) / CLOCKS_PER_SEC)/(b-a);
-//    double msersecs = (double(msertime) / CLOCKS_PER_SEC)/(b-a);
-//    //int mediareg = numreg / NIMAGES;
-//
-//    cout <<  "Total: " << elapsed_secs << std::endl ;
-//    cout <<  "Seg: " << segsecs << std::endl ;
-//    cout <<  "MSER: " << msersecs << std::endl ;
-//
-//    /*namedWindow( "Display window", WINDOW_AUTOSIZE ); // Create a window for display.
-//    imshow( "Display window", mask);                // Show our image inside it.
-//    waitKey(0); // Wait for a keystroke in the window
-//    */
-    cout << "hello world" << endl;
+    }
+    total += segtime + msertime;
+
+    double elapsed_secs = (double(total) / CLOCKS_PER_SEC)/(b-a);
+    double segsecs = (double(segtime) / CLOCKS_PER_SEC)/(b-a);
+    double msersecs = (double(msertime) / CLOCKS_PER_SEC)/(b-a);
+    //int mediareg = numreg / NIMAGES;
+
+    cout <<  "Total: " << elapsed_secs << std::endl ;
+    cout <<  "Seg: " << segsecs << std::endl ;
+    cout <<  "MSER: " << msersecs << std::endl ;
+
+    /*namedWindow( "Display window", WINDOW_AUTOSIZE ); // Create a window for display.
+    imshow( "Display window", mask);                // Show our image inside it.
+    waitKey(0); // Wait for a keystroke in the window
+    */
+
     return 0;
 }
